@@ -1,5 +1,3 @@
-const { get } = require('http');
-
 const fs = require('fs').promises;
 class ProductManager {
   constructor() {
@@ -22,21 +20,28 @@ class ProductManager {
   }
 
   addProduct = async (product) => {
-    let {title, description, price, thumbnail, code, stock} = product
-    if (!title || !description || !price || !thumbnail || !code || !stock) {
-      throw new Error(`El producto debe tener todos los campos completos`);
+    try {
+      let {title, description, price, thumbnail, code, stock} = product
+      if (!title || !description || !price || !thumbnail || !code || !stock) {
+        console.log(`El producto debe tener todos los campos completos`);
+      }
+      let colectionJSON = await this.getProducts();
+      let exists = colectionJSON.some((prod) => prod.code === code)
+      if (exists) {
+        console.log(`Ya existe un producto con el código ${code}`);
+      } else {
+        if(!product.id){
+          product.id = this.#id;
+        }
+        colectionJSON.push({...product})
+        await fs.writeFile(this.path, JSON.stringify(colectionJSON))
+        console.log(`Se agregó el producto "${product.title}" a la colección`);
+        this.#id = this.#id + 1
+      }
     }
-    let colectionJSON = await this.getProducts();
-    let exists = colectionJSON.some((prod) => prod.code === code)
-    if (exists) {
-      console.log(`Ya existe un producto con el código ${code}`);
-      return
+    catch (error) {
+      throw new Error(`Error al agregar producto: ${error.message}`)
     }
-    product.id = this.#id;
-    colectionJSON.push({...product})
-    await fs.writeFile(this.path, JSON.stringify(colectionJSON))
-    console.log(`Se agregó el producto "${product.title}" a la colección`);
-    this.#id = this.#id + 1
   }
 
   getProductById = async(productId) =>  {
@@ -64,10 +69,20 @@ class ProductManager {
   }
 
   deleteProduct = async (productId) => {
-    let colectionJSON = await this.getProducts();
-    let newArray = colectionJSON.filter((prod) => prod.id !== productId)
-    await fs.writeFile(this.path, JSON.stringify(newArray))
-    console.log(`Se eliminó el producto con id: ${productId}`);
+    try {
+      let colectionJSON = await this.getProducts();
+      if (colectionJSON.find((prod) => prod.id === productId)) {
+        let newArray = colectionJSON.filter((prod) => prod.id !== productId)
+        await fs.writeFile(this.path, JSON.stringify(newArray))
+        console.log(`Se eliminó el producto con id: ${productId}:`);
+        console.log(colectionJSON.find((prod) => prod.id === productId));
+      } else {
+        console.log(`No se encontró el producto con id: ${productId}`);
+      }
+    }
+    catch (error) {
+      throw new Error(`Error al eliminar producto: ${error.message}`)
+    }
   }
 
 
@@ -94,19 +109,19 @@ class ProductManager {
         stock: 25
       });
       await instancia.addProduct({
-        title: 'producto prueba1',
-        description: 'Este es un producto prueba',
-        price: 200,
-        thumbnail: 'Sin imagen',
-        code: 'abc123',
-        stock: 25
-      });
-      await instancia.addProduct({
         title: 'producto prueba3',
         description: 'Este es un producto prueba',
         price: 200,
         thumbnail: 'Sin imagen',
         code: 'ghi789',
+        stock: 25
+      });
+      await instancia.addProduct({
+        title: 'producto prueba2',
+        description: 'Este es un producto prueba',
+        price: 200,
+        thumbnail: 'Sin imagen',
+        code: 'def1234',
         stock: 25
       });
   
@@ -119,14 +134,14 @@ class ProductManager {
       console.log(prodBuscado2);
 
       await this.deleteProduct(0);
+      await this.deleteProduct(1);
+
       prod = await instancia.getProducts();
       console.log(prod);
 
-      await this.updateProduct(1,'title', 'Hola')
+      await this.updateProduct(2,'title', 'Hola')
       prod = await instancia.getProducts();
       console.log(prod);
-
-
 
     } catch (error) {
       console.error(error);
