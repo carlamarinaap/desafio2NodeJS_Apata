@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 class ProductManager {
-  constructor() {
-    this.path = './productos.json',
+  constructor(ruta) {
+    this.path = ruta,
     this.#id = 0
   }
 
@@ -152,6 +152,6 @@ class ProductManager {
 // Testing:
 
 
-const instancia = new ProductManager();
+const instancia = new ProductManager('./productos.json');
 
 instancia.test()
